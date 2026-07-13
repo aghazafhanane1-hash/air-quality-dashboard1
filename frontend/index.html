@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualité de l'air — Panneau de contrôle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="vendor/chart.js"></script>
+<style>
+  :root{
+    --bg:#10151c;
+    --surface:#1a222c;
+    --surface-2:#212b37;
+    --line:rgba(255,255,255,0.08);
+    --text:#e8ecef;
+    --text-dim:#8b96a3;
+    --good:#4fb8a6;
+    --warn:#e8a33d;
+    --bad:#e2604f;
+    --accent:#7dd3c0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  header .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:28px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  #status{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-dim);
+    text-align:right;
+  }
+  #status .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-right:6px;}
+
+  /* --- Bandeau instruments (élément signature) --- */
+  .gauges{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:32px;
+  }
+  .gauge{
+    background:var(--surface);
+    padding:16px 18px;
+  }
+  .gauge .city{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:10px;
+  }
+  .gauge .reading{
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+    margin-bottom:10px;
+  }
+  .gauge .value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:26px;
+    font-weight:600;
+  }
+  .gauge .unit{font-size:11px;color:var(--text-dim);}
+  .gauge .bar-track{
+    height:5px;
+    background:var(--surface-2);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .gauge .bar-fill{height:100%;border-radius:3px;transition:width .4s ease;}
+  .gauge .label{font-size:10px;color:var(--text-dim);margin-top:6px;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;}
+
+  /* --- Contrôles --- */
+  .controls{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+    align-items:center;
+  }
+  .controls label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin-right:8px;
+  }
+  select{
+    background:var(--surface);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:8px 12px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+
+  /* --- Panneaux graphiques --- */
+  .panels{
+    display:grid;
+    grid-template-columns:1.4fr 1fr;
+    gap:20px;
+  }
+  @media (max-width:820px){ .panels{grid-template-columns:1fr;} }
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px;
+  }
+  .panel h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .panel .sub{font-size:12px;color:var(--text-dim);margin-bottom:16px;}
+  .chart-box{position:relative;height:320px;}
+
+  footer{
+    margin-top:36px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    border-top:1px solid var(--line);
+    padding-top:16px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="eyebrow">Surveillance atmosphérique · 5 villes</div>
+      <h1>Qualité de l'air</h1>
+    </div>
+    <div id="status"><span class="dot"></span>chargement…</div>
+  </header>
+
+  <div class="gauges" id="gauges"></div>
+
+  <div class="controls">
+    <div><label for="citySelect">Ville</label><select id="citySelect"></select></div>
+    <div><label for="varSelect">Polluant</label><select id="varSelect"></select></div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <h2>Tendance horaire</h2>
+      <div class="sub">Évolution du polluant sélectionné pour la ville sélectionnée</div>
+      <div class="chart-box"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Comparatif villes</h2>
+      <div class="sub">Moyenne du polluant sélectionné, toutes villes</div>
+      <div class="chart-box"><canvas id="rankChart"></canvas></div>
+    </div>
+  </div>
+
+  <footer>Source : Open-Meteo Air Quality API (CAMS) · Nettoyage : valeurs hors bornes physiques exclues · Rafraîchi via app/ingest.py</footer>
+</div>
+
+<script>
+const API = "http://localhost:8000/api";
+
+const VAR_LABELS = {
+  pm10: "PM10 (µg/m³)",
+  pm2_5: "PM2.5 (µg/m³)",
+  carbon_monoxide: "Monoxyde de carbone (µg/m³)",
+  nitrogen_dioxide: "Dioxyde d'azote (µg/m³)",
+  ozone: "Ozone (µg/m³)",
+  european_aqi: "Indice européen (AQI)"
+};
+
+function aqiColor(aqi){
+  if (aqi == null) return "var(--text-dim)";
+  if (aqi <= 40) return "var(--good)";
+  if (aqi <= 80) return "var(--warn)";
+  return "var(--bad)";
+}
+
+let trendChart, rankChart;
+
+async function getJSON(url){
+  const r = await fetch(url);
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+function renderGauges(latest){
+  const el = document.getElementById("gauges");
+  el.innerHTML = "";
+  latest.forEach(row => {
+    const aqi = row.european_aqi;
+    const pct = aqi != null ? Math.min(100, (aqi/100)*100) : 0;
+    const div = document.createElement("div");
+    div.className = "gauge";
+    div.innerHTML = `
+      <div class="city">${row.city}</div>
+      <div class="reading">
+        <span class="value" style="color:${aqiColor(aqi)}">${aqi != null ? aqi.toFixed(0) : "—"}</span>
+        <span class="unit">AQI europ.</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${aqiColor(aqi)}"></div></div>
+      <div class="label">PM2.5 ${row.pm2_5 != null ? row.pm2_5.toFixed(1) : "—"} µg/m³</div>
+    `;
+    el.appendChild(div);
+  });
+}
+
+async function loadTrend(city, variable){
+  const data = await getJSON(`${API}/timeseries?city=${encodeURIComponent(city)}&variable=${variable}`);
+  const labels = data.map(d => d.timestamp.slice(5,16).replace("T"," "));
+  const values = data.map(d => d.value);
+
+  if(trendChart) trendChart.destroy();
+  const ctx = document.getElementById("trendChart");
+  trendChart = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [{
+      label: VAR_LABELS[variable],
+      data: values,
+      borderColor: "#7dd3c0",
+      backgroundColor: "rgba(125,211,192,0.12)",
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+      borderWidth: 2,
+      spanGaps: true
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ ticks:{ color:"#8b96a3", maxTicksLimit:8, font:{family:"IBM Plex Mono",size:10} }, grid:{ color:"rgba(255,255,255,0.05)" } },
+        y:{ ticks:{ color:"#8b96a3", font:{family:"IBM Plex Mono",size:10} }, grid:{ color:"rgba(255,255,255,0.05)" } }
+      }
+    }
+  });
+}
+
+async function loadRanking(variable){
+  const data = await getJSON(`${API}/ranking?variable=${variable}`);
+  const labels = data.map(d => d.city);
+  const values = data.map(d => d.average);
+
+  if(rankChart) rankChart.destroy();
+  const ctx = document.getElementById("rankChart");
+  rankChart = new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{
+      label: VAR_LABELS[variable],
+      data: values,
+      backgroundColor: values.map(v => "rgba(125,211,192,0.55)"),
+      borderRadius: 4,
+      barThickness: 22
+    }]},
+    options: {
+      indexAxis: "y",
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ ticks:{ color:"#8b96a3", font:{family:"IBM Plex Mono",size:10} }, grid:{ color:"rgba(255,255,255,0.05)" } },
+        y:{ ticks:{ color:"#e8ecef", font:{family:"Inter",size:12} }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+async function init(){
+  const statusEl = document.getElementById("status");
+
+  if (typeof Chart === "undefined") {
+    statusEl.innerHTML = `<span class="dot" style="background:var(--bad)"></span>Chart.js n'a pas pu se charger (vendor/chart.js)`;
+    console.error("Chart.js est introuvable. Vérifie que le fichier frontend/vendor/chart.js existe et que la page est bien servie via un serveur local (pas en ouvrant le fichier avec file://).");
+    return;
+  }
+
+  let cities, variables, latest;
+  try{
+    [cities, variables, latest] = await Promise.all([
+      getJSON(`${API}/cities`), getJSON(`${API}/variables`), getJSON(`${API}/latest`)
+    ]);
+  }catch(err){
+    statusEl.innerHTML = `<span class="dot" style="background:var(--bad)"></span>API injoignable (http://localhost:8000)`;
+    console.error("Impossible de contacter l'API. Vérifie que 'uvicorn app.main:app --port 8000' tourne bien. Détail :", err);
+    return;
+  }
+
+  const citySelect = document.getElementById("citySelect");
+  citySelect.innerHTML = cities.map(c => `<option value="${c}">${c}</option>`).join("");
+
+  const varSelect = document.getElementById("varSelect");
+  varSelect.innerHTML = variables.map(v => `<option value="${v}">${VAR_LABELS[v] || v}</option>`).join("");
+  varSelect.value = "pm2_5";
+
+  renderGauges(latest);
+
+  try{
+    await loadTrend(citySelect.value, varSelect.value);
+    await loadRanking(varSelect.value);
+    statusEl.innerHTML = `<span class="dot"></span>${latest.length} villes · à jour`;
+  }catch(err){
+    statusEl.innerHTML = `<span class="dot" style="background:var(--warn)"></span>Données OK, erreur d'affichage des graphiques`;
+    console.error("Erreur lors du rendu des graphiques :", err);
+  }
+
+  citySelect.addEventListener("change", () => loadTrend(citySelect.value, varSelect.value));
+  varSelect.addEventListener("change", () => {
+    loadTrend(citySelect.value, varSelect.value);
+    loadRanking(varSelect.value);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
