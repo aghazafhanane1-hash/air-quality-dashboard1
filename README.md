@@ -69,11 +69,14 @@ python -m app.ingest
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
+o 
+python -m uvicorn app.main:app --port 8000         
 
 **3. Ouvrir le dashboard :**
 
 Ouvrir simplement `frontend/index.html` dans un navigateur (double-clic, ou
-`open frontend/index.html`). Il interroge `http://localhost:8000/api`.
+`open frontend/index.html`).
+Click droit sur fihier .html et selectioner Ouvrir avec Five Server 
 
 ## Remarque réseau (important)
 
