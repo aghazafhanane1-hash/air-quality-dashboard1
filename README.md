@@ -76,7 +76,7 @@ python -m uvicorn app.main:app --port 8000
 
 Ouvrir simplement `frontend/index.html` dans un navigateur (double-clic, ou
 `open frontend/index.html`).
-Click droit sur fihier .html et selectioner Ouvrir avec Five Server 
+Click droit sur fichier .html et selectioner Ouvrir avec Five Server 
 
 ## Remarque réseau (important)
 
