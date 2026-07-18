@@ -3,15 +3,15 @@
 ## Contexte
 
 J'ai développé ce projet avec l'assistance d'IA générative à chaque étape
-(architecture, code, tests, documentation), conformément à la consigne du
+(architecture, code, tests), conformément à la consigne du
 sujet. Ce rapport présente mon analyse des forces et limites des outils que
 j'ai utilisés.
 
 ## Outil n°1 — Claude (Sonnet 5, Anthropic)
 
 **Usage** : j'ai utilisé Claude pour concevoir l'architecture, générer
-l'intégralité du code (back-end FastAPI, nettoyage des données, front-end),
-les tests unitaires et la documentation, en l'exécutant et en le déboguant
+l'intégralité du code (back-end FastAPI, nettoyage des données, front-end) et 
+les tests unitaires , en l'exécutant et en le déboguant  
 directement dans un environnement bac à sable (bash, édition de fichiers).
 
 **Forces que j'ai observées**
